@@ -46,6 +46,9 @@ To run locally, copy `.env.example` to `.env` and fill values locally. Never com
 
 The internal health endpoint returns HTTP 200 when at least one source has been polled successfully within the expected window. It returns HTTP 503 when polling has not succeeded for too long. Port 3000 does not need a public domain.
 
+The entrypoint briefly runs as root to prepare the mounted `/data` directory, then drops privileges to the unprivileged `node` user before starting the application.
+
+
 The application starts in draft-only mode. New articles are sent to the administrator with **Approve** and **Skip** buttons. An approved article is then published to the channel with attribution and the original link.
 
 ## Security and editorial boundaries
