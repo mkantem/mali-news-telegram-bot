@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import Parser from 'rss-parser';
 import { canonicalItem, isMaliRelevant, makeDraft } from './core.js';
@@ -7,6 +8,7 @@ const DATA_DIR = process.env.DATA_DIR || '/data';
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const SOURCES_FILE = path.join(process.cwd(), 'config', 'sources.json');
 const POLL_SECONDS = Number(process.env.POLL_INTERVAL_SECONDS || 1800);
+const PORT = Number(process.env.PORT || 3000);
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -23,6 +25,7 @@ try {
   state = { seen: {}, pending: {}, initializedSources: {}, ...JSON.parse(await fs.readFile(STATE_FILE, 'utf8')) };
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 const sources = JSON.parse(await fs.readFile(SOURCES_FILE, 'utf8')).filter((source) => source.enabled);
+let lastSuccessfulPollAt = 0;
 
 async function saveState() { await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2)); }
 async function telegram(method, body) {
@@ -45,6 +48,7 @@ async function sendDraft(item) {
 }
 
 async function poll() {
+  let successfulSources = 0;
   for (const source of sources) {
     try {
       const feed = await parser.parseURL(source.url);
@@ -68,11 +72,28 @@ async function poll() {
       }
       await saveState();
       console.log(`${source.name}: scanned ${feed.items?.length || 0} item(s)`);
+      successfulSources += 1;
     } catch (error) {
       console.error(`${source.name}: ${error.message}`);
     }
   }
+  if (successfulSources > 0) lastSuccessfulPollAt = Date.now();
 }
+
+createServer((request, response) => {
+  if (request.method === 'GET' && request.url === '/health') {
+    const maxAge = (POLL_SECONDS * 2 + 60) * 1000;
+    const healthy = lastSuccessfulPollAt > 0 && Date.now() - lastSuccessfulPollAt <= maxAge;
+    response.writeHead(healthy ? 200 : 503, { 'content-type': 'application/json' });
+    response.end(JSON.stringify({
+      status: healthy ? 'ok' : 'unhealthy',
+      lastSuccessfulPollAt: lastSuccessfulPollAt ? new Date(lastSuccessfulPollAt).toISOString() : null
+    }));
+    return;
+  }
+  response.writeHead(404, { 'content-type': 'application/json' });
+  response.end(JSON.stringify({ error: 'not found' }));
+}).listen(PORT, '0.0.0.0', () => console.log(`Internal health endpoint listening on :${PORT}/health`));
 
 async function handleUpdate(update) {
   if (update.callback_query) {

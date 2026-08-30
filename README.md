@@ -40,8 +40,11 @@ To run locally, copy `.env.example` to `.env` and fill values locally. Never com
 1. Create an Application from this GitHub repository.
 2. Use Dockerfile deployment and the `main` branch.
 3. Add a persistent volume mounted at `/data`.
-4. Add the environment variables above. Keep `TELEGRAM_BOT_TOKEN` secret.
-5. Deploy and inspect logs for `Mali News Bot started`.
+4. Set the health check path to `/health` on port `3000`.
+5. Add the environment variables above. Keep `TELEGRAM_BOT_TOKEN` secret.
+6. Deploy and inspect logs for `Mali News Bot started`.
+
+The internal health endpoint returns HTTP 200 when at least one source has been polled successfully within the expected window. It returns HTTP 503 when polling has not succeeded for too long. Port 3000 does not need a public domain.
 
 The application starts in draft-only mode. New articles are sent to the administrator with **Approve** and **Skip** buttons. An approved article is then published to the channel with attribution and the original link.
 
