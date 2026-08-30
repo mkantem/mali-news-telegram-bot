@@ -18,8 +18,10 @@ if (!TOKEN || !ADMIN_CHAT_ID || !CHANNEL_ID) {
 }
 
 await fs.mkdir(DATA_DIR, { recursive: true });
-let state = { seen: {}, pending: {} };
-try { state = JSON.parse(await fs.readFile(STATE_FILE, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+let state = { seen: {}, pending: {}, initializedSources: {} };
+try {
+  state = { seen: {}, pending: {}, initializedSources: {}, ...JSON.parse(await fs.readFile(STATE_FILE, 'utf8')) };
+} catch (error) { if (error.code !== 'ENOENT') throw error; }
 const sources = JSON.parse(await fs.readFile(SOURCES_FILE, 'utf8')).filter((source) => source.enabled);
 
 async function saveState() { await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2)); }
@@ -46,7 +48,18 @@ async function poll() {
   for (const source of sources) {
     try {
       const feed = await parser.parseURL(source.url);
-      for (const raw of (feed.items || []).slice(0, 20).reverse()) {
+      const items = (feed.items || []).slice(0, 20).reverse();
+      if (!state.initializedSources[source.name]) {
+        for (const raw of items) {
+          const item = canonicalItem(source, raw);
+          state.seen[item.key] = { detectedAt: new Date().toISOString(), status: 'baseline' };
+        }
+        state.initializedSources[source.name] = new Date().toISOString();
+        await saveState();
+        console.log(`${source.name}: initialized baseline with ${items.length} item(s)`);
+        continue;
+      }
+      for (const raw of items) {
         const item = canonicalItem(source, raw);
         if (source.requireMaliRelevance && !isMaliRelevant(raw)) continue;
         if (state.seen[item.key]) continue;
