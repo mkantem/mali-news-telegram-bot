@@ -5,8 +5,16 @@ A small, draft-first Telegram bot that monitors selected Mali-related RSS feeds,
 ## Current sources
 
 - L'Indépendant — `https://lindependant.ml/feed/`
-- Afrikinfos Mali — `https://afrikinfos-mali.com/feed/`
+- Afrikinfos Mali — `https://afrikinfos-mali.com/feed/` (minimum 30-minute polling interval)
 - Maliactu — `https://maliactu.net/feed/` (Mali relevance filter enabled)
+- Malijet — `https://malijet.com/feed/` (Mali relevance filter enabled)
+- Studio Tamani — `https://www.studiotamani.org/feed/` (Mali relevance filter enabled)
+- Sahelien — `https://sahelien.com/feed/` (Mali relevance filter enabled)
+- Journal du Mali — `https://journaldumali.com/feed/`
+- Mali Tribune — `https://malitribune.com/feed/`
+- Info-Matin — `https://info-matin.ml/feed/`
+
+The six additional feeds were verified as returning valid RSS during source discovery. Malijet and the broader Sahelien feed use Mali relevance filtering to reduce unrelated articles.
 
 The bot does not scrape Facebook or X and does not automatically publish. Those integrations may be considered separately after the RSS workflow is proven.
 
