@@ -20,5 +20,47 @@
     "url": "https://maliactu.net/feed/",
     "enabled": true,
     "requireMaliRelevance": true
+  },
+  {
+    "name": "Malijet",
+    "type": "rss",
+    "url": "https://malijet.com/feed/",
+    "enabled": true,
+    "requireMaliRelevance": true
+  },
+  {
+    "name": "Studio Tamani",
+    "type": "rss",
+    "url": "https://www.studiotamani.org/feed/",
+    "enabled": true,
+    "requireMaliRelevance": true
+  },
+  {
+    "name": "Sahelien",
+    "type": "rss",
+    "url": "https://sahelien.com/feed/",
+    "enabled": true,
+    "requireMaliRelevance": true
+  },
+  {
+    "name": "Journal du Mali",
+    "type": "rss",
+    "url": "https://journaldumali.com/feed/",
+    "enabled": true,
+    "requireMaliRelevance": false
+  },
+  {
+    "name": "Mali Tribune",
+    "type": "rss",
+    "url": "https://malitribune.com/feed/",
+    "enabled": true,
+    "requireMaliRelevance": false
+  },
+  {
+    "name": "Info-Matin",
+    "type": "rss",
+    "url": "https://info-matin.ml/feed/",
+    "enabled": true,
+    "requireMaliRelevance": false
   }
 ]
