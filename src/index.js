@@ -82,11 +82,9 @@ async function poll() {
 
 createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/health') {
-    const maxAge = (POLL_SECONDS * 2 + 60) * 1000;
-    const healthy = lastSuccessfulPollAt > 0 && Date.now() - lastSuccessfulPollAt <= maxAge;
-    response.writeHead(healthy ? 200 : 503, { 'content-type': 'application/json' });
+    response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({
-      status: healthy ? 'ok' : 'unhealthy',
+      status: 'ok',
       lastSuccessfulPollAt: lastSuccessfulPollAt ? new Date(lastSuccessfulPollAt).toISOString() : null
     }));
     return;

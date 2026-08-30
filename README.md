@@ -44,7 +44,7 @@ To run locally, copy `.env.example` to `.env` and fill values locally. Never com
 5. Add the environment variables above. Keep `TELEGRAM_BOT_TOKEN` secret.
 6. Deploy and inspect logs for `Mali News Bot started`.
 
-The internal health endpoint returns HTTP 200 when at least one source has been polled successfully within the expected window. It returns HTTP 503 when polling has not succeeded for too long. Port 3000 does not need a public domain.
+The internal health endpoint is a liveness check and returns HTTP 200 while the process is running. Its JSON response includes the time of the last successful source poll, if any. Port 3000 does not need a public domain.
 
 The entrypoint briefly runs as root to prepare the mounted `/data` directory, then drops privileges to the unprivileged `node` user before starting the application.
 
