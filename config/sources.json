@@ -1,0 +1,24 @@
+[
+  {
+    "name": "L'Indépendant",
+    "type": "rss",
+    "url": "https://lindependant.ml/feed/",
+    "enabled": true,
+    "requireMaliRelevance": false
+  },
+  {
+    "name": "Afrikinfos Mali",
+    "type": "rss",
+    "url": "https://afrikinfos-mali.com/feed/",
+    "enabled": true,
+    "requireMaliRelevance": false,
+    "minPollIntervalMinutes": 30
+  },
+  {
+    "name": "Maliactu",
+    "type": "rss",
+    "url": "https://maliactu.net/feed/",
+    "enabled": true,
+    "requireMaliRelevance": true
+  }
+]
