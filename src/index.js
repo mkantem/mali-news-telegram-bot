@@ -42,7 +42,7 @@ async function sendDraft(item) {
   await telegram('sendMessage', {
     chat_id: ADMIN_CHAT_ID,
     text: `New article detected\n\n${makeDraft(item)}`,
-    parse_mode: 'MarkdownV2',
+    parse_mode: 'HTML',
     reply_markup: { inline_keyboard: [[{ text: 'Approve', callback_data: `approve:${id}` }, { text: 'Skip', callback_data: `skip:${id}` }]] }
   });
 }
@@ -101,7 +101,7 @@ async function handleUpdate(update) {
     const item = state.pending[id];
     if (!item) { await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'This draft is no longer available.' }); return; }
     if (action === 'approve') {
-      await telegram('sendMessage', { chat_id: CHANNEL_ID, text: `${makeDraft(item)}`, parse_mode: 'MarkdownV2', disable_web_page_preview: false });
+      await telegram('sendMessage', { chat_id: CHANNEL_ID, text: `${makeDraft(item)}`, parse_mode: 'HTML', disable_web_page_preview: false });
       state.seen[item.key].status = 'published';
       delete state.pending[id];
       await telegram('editMessageReplyMarkup', { chat_id: ADMIN_CHAT_ID, message_id: query.message.message_id, reply_markup: { inline_keyboard: [] } });

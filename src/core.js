@@ -31,10 +31,17 @@ export function canonicalItem(source, item) {
 }
 
 export function makeDraft(item) {
-  const excerpt = item.excerpt ? `\n\n${escapeMarkdown(item.excerpt)}` : '';
-  return `*${escapeMarkdown(item.title)}*\n\nSource: ${escapeMarkdown(item.source)}${excerpt}\n\n${item.link}`;
+  const excerpt = item.excerpt ? `\n\n${escapeHtml(item.excerpt)}` : '';
+  const link = escapeHtml(item.link);
+  return `<b>${escapeHtml(item.title)}</b>\n\nSource: ${escapeHtml(item.source)}${excerpt}\n\n<a href="${link}">Read original article</a>`;
 }
 
-export function escapeMarkdown(value) {
-  return String(value).replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+export function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
 }
