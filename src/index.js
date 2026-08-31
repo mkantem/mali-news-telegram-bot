@@ -39,12 +39,18 @@ function shortId(key) { return Buffer.from(key).toString('base64url').slice(0, 4
 async function sendDraft(item) {
   const id = shortId(item.key);
   state.pending[id] = item;
-  await telegram('sendMessage', {
-    chat_id: ADMIN_CHAT_ID,
-    text: `New article detected\n\n${makeDraft(item)}`,
-    parse_mode: 'HTML',
-    reply_markup: { inline_keyboard: [[{ text: 'Approve', callback_data: `approve:${id}` }, { text: 'Skip', callback_data: `skip:${id}` }]] }
-  });
+  try {
+    await telegram('sendMessage', {
+      chat_id: ADMIN_CHAT_ID,
+      text: `New article detected\n\n${makeDraft(item)}`,
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [[{ text: 'Approve', callback_data: `approve:${id}` }, { text: 'Skip', callback_data: `skip:${id}` }]] }
+    });
+  } catch (error) {
+    delete state.pending[id];
+    delete state.seen[item.key];
+    throw error;
+  }
 }
 
 async function poll() {
