@@ -8,6 +8,7 @@ const DATA_DIR = process.env.DATA_DIR || '/data';
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
 const SOURCES_FILE = path.join(process.cwd(), 'config', 'sources.json');
 const POLL_SECONDS = Number(process.env.POLL_INTERVAL_SECONDS || 1800);
+const MAX_DRAFTS_PER_POLL = Number(process.env.MAX_DRAFTS_PER_POLL || 3);
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
 const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
@@ -39,6 +40,7 @@ function shortId(key) { return Buffer.from(key).toString('base64url').slice(0, 4
 async function sendDraft(item) {
   const id = shortId(item.key);
   state.pending[id] = item;
+  await saveState();
   try {
     await telegram('sendMessage', {
       chat_id: ADMIN_CHAT_ID,
@@ -49,12 +51,14 @@ async function sendDraft(item) {
   } catch (error) {
     delete state.pending[id];
     delete state.seen[item.key];
+    await saveState();
     throw error;
   }
 }
 
 async function poll() {
   let successfulSources = 0;
+  let draftsSent = 0;
   for (const source of sources) {
     try {
       const feed = await parser.parseURL(source.url);
@@ -70,11 +74,13 @@ async function poll() {
         continue;
       }
       for (const raw of items) {
+        if (draftsSent >= MAX_DRAFTS_PER_POLL) break;
         const item = canonicalItem(source, raw);
         if (source.requireMaliRelevance && !isMaliRelevant(raw)) continue;
         if (state.seen[item.key]) continue;
         state.seen[item.key] = { detectedAt: new Date().toISOString(), status: 'pending' };
         await sendDraft(item);
+        draftsSent += 1;
       }
       await saveState();
       console.log(`${source.name}: scanned ${feed.items?.length || 0} item(s)`);
@@ -105,7 +111,7 @@ async function handleUpdate(update) {
     if (String(query.message?.chat?.id) !== String(ADMIN_CHAT_ID)) return;
     const [action, id] = query.data.split(':');
     const item = state.pending[id];
-    if (!item) { await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'This draft is no longer available.' }); return; }
+    if (!item) { await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'This draft was already processed or became unavailable after a restart.' }); return; }
     if (action === 'approve') {
       await telegram('sendMessage', { chat_id: CHANNEL_ID, text: `${makeDraft(item)}`, parse_mode: 'HTML', disable_web_page_preview: false });
       state.seen[item.key].status = 'published';

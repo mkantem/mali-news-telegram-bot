@@ -28,6 +28,7 @@ Optional:
 
 - `DATA_DIR` — persistent data directory, default `/data`
 - `POLL_INTERVAL_SECONDS` — polling interval, default `1800`
+- `MAX_DRAFTS_PER_POLL` — maximum new drafts sent per polling cycle, default `3`
 
 The state file is stored at `$DATA_DIR/state.json` and contains seen article URLs and pending drafts. Mount `/data` as a persistent Coolify volume.
 
