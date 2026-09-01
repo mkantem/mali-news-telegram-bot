@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import Parser from 'rss-parser';
 import { canonicalItem, isMaliRelevant, makeDraft } from './core.js';
+import { addPendingDraft, pruneExpiredPending } from './state.js';
 
 const DATA_DIR = process.env.DATA_DIR || '/data';
 const STATE_FILE = path.join(DATA_DIR, 'state.json');
@@ -25,10 +26,25 @@ let state = { seen: {}, pending: {}, initializedSources: {} };
 try {
   state = { seen: {}, pending: {}, initializedSources: {}, ...JSON.parse(await fs.readFile(STATE_FILE, 'utf8')) };
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
+const pendingBeforePrune = state.pending;
+state.pending = pruneExpiredPending(state.pending);
+for (const [id, item] of Object.entries(pendingBeforePrune)) {
+  if (!state.pending[id] && state.seen[item.key]) state.seen[item.key].status = 'expired';
+}
 const sources = JSON.parse(await fs.readFile(SOURCES_FILE, 'utf8')).filter((source) => source.enabled);
 let lastSuccessfulPollAt = 0;
+let saveChain = Promise.resolve();
+let pollInProgress = false;
 
-async function saveState() { await fs.writeFile(STATE_FILE, JSON.stringify(state, null, 2)); }
+function saveState() {
+  const snapshot = JSON.stringify(state, null, 2);
+  saveChain = saveChain.catch(() => {}).then(async () => {
+    const temporaryFile = `${STATE_FILE}.tmp`;
+    await fs.writeFile(temporaryFile, snapshot);
+    await fs.rename(temporaryFile, STATE_FILE);
+  });
+  return saveChain;
+}
 async function telegram(method, body) {
   const response = await fetch(`https://api.telegram.org/bot${TOKEN}/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const data = await response.json();
@@ -39,7 +55,7 @@ function shortId(key) { return Buffer.from(key).toString('base64url').slice(0, 4
 
 async function sendDraft(item) {
   const id = shortId(item.key);
-  state.pending[id] = item;
+  addPendingDraft(state.pending, id, item);
   await saveState();
   try {
     await telegram('sendMessage', {
@@ -57,10 +73,16 @@ async function sendDraft(item) {
 }
 
 async function poll() {
+  if (pollInProgress) {
+    console.warn('Skipping poll because the previous poll is still running');
+    return;
+  }
+  pollInProgress = true;
   let successfulSources = 0;
   let draftsSent = 0;
-  for (const source of sources) {
-    try {
+  try {
+    for (const source of sources) {
+      try {
       const feed = await parser.parseURL(source.url);
       const items = (feed.items || []).slice(0, 20).reverse();
       if (!state.initializedSources[source.name]) {
@@ -85,11 +107,14 @@ async function poll() {
       await saveState();
       console.log(`${source.name}: scanned ${feed.items?.length || 0} item(s)`);
       successfulSources += 1;
-    } catch (error) {
-      console.error(`${source.name}: ${error.message}`);
+      } catch (error) {
+        console.error(`${source.name}: ${error.message}`);
+      }
     }
+  } finally {
+    if (successfulSources > 0) lastSuccessfulPollAt = Date.now();
+    pollInProgress = false;
   }
-  if (successfulSources > 0) lastSuccessfulPollAt = Date.now();
 }
 
 createServer((request, response) => {
@@ -111,7 +136,7 @@ async function handleUpdate(update) {
     if (String(query.message?.chat?.id) !== String(ADMIN_CHAT_ID)) return;
     const [action, id] = query.data.split(':');
     const item = state.pending[id];
-    if (!item) { await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'This draft was already processed or became unavailable after a restart.' }); return; }
+    if (!item) { await telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'This draft was already processed or expired after 48 hours.' }); return; }
     if (action === 'approve') {
       await telegram('sendMessage', { chat_id: CHANNEL_ID, text: `${makeDraft(item)}`, parse_mode: 'HTML', disable_web_page_preview: false });
       state.seen[item.key].status = 'published';

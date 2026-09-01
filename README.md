@@ -58,6 +58,8 @@ The entrypoint briefly runs as root to prepare the mounted `/data` directory, th
 
 The application starts in draft-only mode. New articles are sent to the administrator with **Approve** and **Skip** buttons. An approved article is then published to the channel with attribution and the original link.
 
+Pending drafts remain available for 48 hours. Drafts older than 48 hours expire automatically, and state is written atomically to the persistent `/data` volume so buttons survive restarts.
+
 ## Security and editorial boundaries
 
 - No credentials or runtime state belong in Git.
