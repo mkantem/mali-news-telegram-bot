@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Coolify's HTTP health checker may use curl or wget.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl wget gosu \
+    && apt-get install -y --no-install-recommends curl wget util-linux \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./

@@ -5,4 +5,4 @@ set -eu
 # then drop privileges before starting the bot.
 mkdir -p /data
 chown node:node /data
-exec gosu node "$@"
+exec setpriv --reuid=node --regid=node --init-groups "$@"
